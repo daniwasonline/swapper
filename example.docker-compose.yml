@@ -1,0 +1,17 @@
+services:
+  kv:
+    image: valkey/valkey:8
+  swapper:
+    build: .
+    env_file:
+      - .env
+      # Uncomment the following line to use a local .env.local file
+      # - .env.local
+    environment:
+      - KV_URI=redis://kv:6379/
+      # - VE_URL=https://192.168.1.100:8006/
+      # - VE_TOKEN_ID=
+      # - VE_TOKEN_SECRET=
+      # - SWAPPER_KEY=
+    ports:
+      - 8555:8555
