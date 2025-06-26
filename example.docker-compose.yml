@@ -2,7 +2,7 @@ services:
   kv:
     image: valkey/valkey:8
   swapper:
-    build: .
+    image: ghcr.io/daniwasonline/swapper:nightly
     env_file:
       - .env
       # Uncomment the following line to use a local .env.local file
