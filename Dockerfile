@@ -39,4 +39,4 @@ ENV PORT=8555
 # run the app
 USER bun
 EXPOSE 8555/tcp
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+ENTRYPOINT [ "bun", "start" ]
