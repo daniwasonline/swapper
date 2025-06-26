@@ -119,7 +119,9 @@ const eventListener = async (job: Job) => {
   };
 
   if ((changes.usb.length > 0 || changes.pci.length > 0)) {
-    active.add(ActiveJobType.DeviceSync, {});
+    active.add(ActiveJobType.DeviceSync, {}, {
+      delay: 2000
+    });
   }
 
   return { success: true, changes: changes };
