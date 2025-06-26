@@ -15,6 +15,8 @@ export enum CacheJobType {
 }
 
 export enum EventListenerEvent {
+  NewUsbDevice = "new-usb-device",
+  NewPciDevice = "new-pci-device",
   UsbDeviceAttach = "usb-device-attach",
   UsbDeviceDetach = "usb-device-detach",
   PciDeviceAttach = "pci-device-attach",
@@ -84,8 +86,8 @@ const eventListener = async (job: Job) => {
   const swapper = new Swapper(createVeApi());
 
   const currentValues = {
-    usb: await kv.get<Proxmox.clusterMappingUsbIndex[]>("usb:mappings"),
-    pci: await kv.get<Proxmox.clusterMappingPciIndex[]>("pci:mappings"),
+    usb: await kv.get<ReturnType<typeof swapper.cluster.mappings>>("usb:mappings"),
+    pci: await kv.get<ReturnType<typeof swapper.cluster.mappings>>("pci:mappings"),
   };
 
   const newValues = {
@@ -101,20 +103,44 @@ const eventListener = async (job: Job) => {
   if (changes.usb.length > 0) {
     await kv.set("usb:mappings", newValues.usb);
     changes.usb.forEach((change) => {
-      job.updateProgress({
-        name: CacheJobType.EventListener,
-        event: change.connectedToHost ? EventListenerEvent.UsbDeviceAttach : EventListenerEvent.UsbDeviceDetach,
-        device: change.id,
-      });
+      const oldValue = currentValues?.usb?.find((currentValue) => currentValue.id === change.id);
+
+      if (oldValue?.connectedToHost === undefined || oldValue?.connectedToHost === null) {
+        job.updateProgress({
+          name: CacheJobType.EventListener,
+          event: EventListenerEvent.NewUsbDevice,
+          device: change.id,
+          connected: change.connectedToHost
+        });
+      } else {
+        job.updateProgress({
+          name: CacheJobType.EventListener,
+          event: change.connectedToHost ? EventListenerEvent.UsbDeviceAttach : EventListenerEvent.UsbDeviceDetach,
+          device: change.id,
+          connected: change.connectedToHost
+        });
+      };
     });
   } if (changes.pci.length > 0) {
     await kv.set("pci:mappings", newValues.pci);
     changes.pci.forEach((change) => {
-      job.updateProgress({
-        name: CacheJobType.EventListener,
-        event: EventListenerEvent.PciDeviceAttach,
-        device: change.devId,
-      });
+      const oldValue = currentValues?.pci?.find((currentValue) => currentValue.devId === change.devId);
+
+      if (oldValue?.connectedToHost === undefined || oldValue?.connectedToHost === null) {
+        job.updateProgress({
+          name: CacheJobType.EventListener,
+          event: EventListenerEvent.NewPciDevice,
+          device: change.devId,
+          connected: change.connectedToHost
+        });
+      } else {
+        job.updateProgress({
+          name: CacheJobType.EventListener,
+          event: EventListenerEvent.PciDeviceAttach,
+          device: change.devId,
+          connected: change.connectedToHost
+        });
+      };
     });
   };
 
@@ -136,6 +162,7 @@ cacheEvents.on("error", async (job) => {
 cacheEvents.on("progress", async ({ jobId, data }: { jobId: string, data: any }) => {
   if (data?.name === CacheJobType.EventListener) {
     const prefix = `[${chalk["red"]["bold"]("HOST")}]`;
+    const connected = data?.connected ? chalk["bold"]["green"]("yes") : chalk["bold"]["red"]("no");
     if (data?.event === EventListenerEvent.UsbDeviceAttach) {
       console.log(`${prefix} ${chalk["green"]("Attached")} USB device ${chalk["blue"]["bold"](data?.device)}`);
     } else if (data?.event === EventListenerEvent.UsbDeviceDetach) {
@@ -144,6 +171,10 @@ cacheEvents.on("progress", async ({ jobId, data }: { jobId: string, data: any })
       console.log(`${prefix} ${chalk["green"]("Attached")} PCI device ${chalk["blue"]["bold"](data?.device)}`);
     } else if (data?.event === EventListenerEvent.PciDeviceDetach) {
       console.log(`${prefix} ${chalk["red"]("Detached")} PCI device ${chalk["blue"]["bold"](data?.device)}`);
-    }
+    } else if (data?.event === EventListenerEvent.NewUsbDevice) {
+      console.log(`${prefix} ${chalk["green"]("Discovered")} USB mapping ${chalk["blue"]["bold"](data?.device)} (connected: ${connected})`);
+    } else if (data?.event === EventListenerEvent.NewPciDevice) {
+      console.log(`${prefix} ${chalk["green"]("Discovered")} PCI mapping ${chalk["blue"]["bold"](data?.device)} (connected: ${connected})`);
+    };
   };
 });
