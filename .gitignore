@@ -48,3 +48,6 @@ package-lock.json
 
 # environment vars
 .env.local
+
+# docker
+docker-compose.yml
