@@ -19,6 +19,7 @@ A REST API for easily swapping between virtual machines on a personal Proxmox vi
   - [x] USB device support
   - [ ] PCI(e) device support (\* API prepared but not implemented at this point)
   - [x] Hot-plug (automatically remove/add device to active VM as it's plugged in/out)
+  -  NOTE: This only works with mapped devices at the moment!
   - [x] Dynamic loading on startup (only load devices connected to host on startup)
 
 ## Usage
